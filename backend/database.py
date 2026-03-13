@@ -24,7 +24,7 @@ client = MongoClient(
     tlsCAFile=certifi.where()
 )
 
-db = client["zero_trust_db"]
+db = client["sample_mflix"]
 
 users_collection = db["users"]
 behavior_collection = db["behavior_logs"]
