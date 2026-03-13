@@ -1,0 +1,271 @@
+/* ===============================
+   GLOBAL RESET (IMPORTANT)
+================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+/* Make page take full screen */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* REMOVE VITE DEFAULT CENTERING */
+body {
+  display: block;
+  min-width: 320px;
+
+  /* ===== GLOBAL BACKGROUND IMAGE ===== */
+  background:
+    linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+    url("./assets/security-bg.jpg");
+
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* REMOVE ROOT WIDTH LIMIT */
+#root {
+  max-width: none;
+}
+
+/* ===============================
+   TYPOGRAPHY
+================================ */
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ===============================
+   LINKS
+================================ */
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+/* ===============================
+   BUTTON RESET
+================================ */
+
+button {
+  border-radius: 8px;
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ===============================
+   LIGHT MODE SUPPORT
+================================ */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+}
+
+.page {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===============================
+   CARD
+================================ */
+
+.card {
+  background: #fff;
+  padding: 25px;
+  width: 340px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,0,0,.5);
+}
+
+.alert-card-big {
+  border: 3px solid red;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+.primary {
+  width: 100%;
+  padding: 10px;
+  background: #1e3c72;
+  color: white;
+  border: none;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.backBtn {
+  margin-top: 10px;
+  background: transparent;
+  border: none;
+  color: #333;
+  cursor: pointer;
+}
+
+.password-box {
+  position: relative;
+}
+
+.password-box span {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  cursor: pointer;
+}
+
+.link {
+  color: blue;
+  cursor: pointer;
+}
+
+.status {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.dashboard {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.user-bg {
+  background: radial-gradient(circle,#0f2027,#203a43,#2c5364);
+  color: white;
+}
+
+.admin-bg {
+  background: linear-gradient(135deg,#111,#333);
+  color: white;
+}
+
+.logoutBtn {
+  background: red;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.user-panel {
+  margin-top: 30px;
+}
+
+.action {
+  padding: 7px;
+  margin: 5px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+}
+
+.normal { background: green; }
+.abnormal { background: darkred; }
+.analyze { background: #2196f3; }
+
+.risk-box-big {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.low { background: #1b5e20; }
+.medium { background: #f9a825; color: black; }
+.high { background: #b71c1c; animation: blink 1s infinite; }
+
+.admin-panel {
+  margin-top: 20px;
+}
+
+.alert-row {
+  background: #ffecec;
+  color: black;
+  padding: 10px;
+  margin: 10px 0;
+  border-left: 5px solid red;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@keyframes blink {
+  50% { opacity: 0.3; }
+}
+
+.blink {
+  animation: blinkAnim 1s infinite;
+}
+
+@keyframes blinkAnim {
+  0% { opacity: 1; }
+  50% { opacity: 0.1; }
+  100% { opacity: 1; }
+}
+
+.alert-card-big {
+  border: 3px solid red;
+  box-shadow: 0 0 20px red;
+}
+
+.alert-icon {
+  font-size: 40px;
+  animation: blinkAnim 1s infinite;
+}
+
+/* ===== High Risk Blinking Security Box ===== */
+
+.alert-card-big {
+  background: #ffecec;
+  border: 3px solid red;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 0 25px red;
+}
+
+.blink {
+  animation: blinkAnim 1s infinite;
+  color: red;
+  text-shadow: 0 0 10px rgb(202, 105, 105);
+}
+
+.alert-icon {
+  font-size: 42px;
+  animation: blinkAnim 1s infinite;
+}
