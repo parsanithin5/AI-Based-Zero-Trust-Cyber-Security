@@ -10,3 +10,4 @@ pandas
 python-multipart
 email-validator
 aiofiles
+certifi
