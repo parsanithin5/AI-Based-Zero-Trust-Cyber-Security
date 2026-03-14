@@ -27,20 +27,21 @@ import requests
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 def send_email(to_email, subject, body):
-    print("📧 Attempting to send email to:", to_email)
+
+    print("📧 Sending email to:", to_email)
 
     response = requests.post(
         "https://api.resend.com/emails",
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
         json={
             "from": "onboarding@resend.dev",
             "to": [to_email],
             "subject": subject,
-            "html": f"<p>{body}</p>"
-        }
+            "html": f"<p>{body}</p>",
+        },
     )
 
     print("📨 Resend response:", response.status_code, response.text)
