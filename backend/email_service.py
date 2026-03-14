@@ -26,23 +26,23 @@ import requests
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
-def send_email(to_email: str, subject: str, body: str):
+def send_email(to_email, subject, body):
     try:
         response = requests.post(
             "https://api.resend.com/emails",
             headers={
                 "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             },
             json={
                 "from": "onboarding@resend.dev",
                 "to": [to_email],
                 "subject": subject,
-                "html": f"<p>{body}</p>",
-            },
+                "html": f"<p>{body}</p>"
+            }
         )
 
-        if response.status_code == 200 or response.status_code == 202:
+        if response.status_code in [200, 202]:
             print("✅ Email sent successfully")
         else:
             print("❌ Email failed:", response.text)
