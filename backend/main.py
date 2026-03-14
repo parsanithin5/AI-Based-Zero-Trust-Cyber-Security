@@ -32,7 +32,8 @@ app = FastAPI(title="AI-Based Zero Trust Security System")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # allow frontend requests
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
