@@ -21,27 +21,49 @@
 #         server.starttls()
 #         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 #         server.send_message(msg)
-import os
+# import os
+# import requests
+
+# RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+
+# def send_email(to_email, subject, body):
+
+#     print("📧 Sending email to:", to_email)
+
+#     response = requests.post(
+#         "https://api.resend.com/emails",
+#         headers={
+#             "Authorization": f"Bearer {RESEND_API_KEY}",
+#             "Content-Type": "application/json",
+#         },
+#         json={
+#             "from": "onboarding@resend.dev",
+#             "to": [to_email],
+#             "subject": subject,
+#             "html": f"<p>{body}</p>",
+#         },
+#     )
+
+#     print("📨 Resend response:", response.status_code, response.text)
 import requests
+import os
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 def send_email(to_email, subject, body):
 
-    print("📧 Sending email to:", to_email)
-
     response = requests.post(
         "https://api.resend.com/emails",
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
         },
         json={
             "from": "onboarding@resend.dev",
             "to": [to_email],
             "subject": subject,
-            "html": f"<p>{body}</p>",
-        },
+            "html": f"<h3>{body}</h3>"
+        }
     )
 
-    print("📨 Resend response:", response.status_code, response.text)
+    print("Email response:", response.status_code, response.text)
