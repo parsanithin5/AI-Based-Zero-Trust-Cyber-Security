@@ -25,15 +25,20 @@ import smtplib
 import os
 from email.mime.text import MIMEText
 
-EMAIL = os.getenv("EMAIL_ADDRESS")
-PASSWORD = os.getenv("EMAIL_PASSWORD")
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
 def send_email(to_email, subject, body):
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = EMAIL
+    msg["From"] = GMAIL_ADDRESS
     msg["To"] = to_email
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(EMAIL, PASSWORD)
-        server.sendmail(EMAIL, to_email, msg.as_string())
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+        server.sendmail(GMAIL_ADDRESS, to_email, msg.as_string())
+        server.quit()
+        print("✅ Email sent successfully")
+    except Exception as e:
+        print("❌ Email failed:", e)
