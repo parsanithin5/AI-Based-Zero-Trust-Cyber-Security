@@ -52,18 +52,27 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 def send_email(to_email, subject, body):
 
-    response = requests.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "from": "onboarding@resend.dev",
-            "to": [to_email],
-            "subject": subject,
-            "html": f"<h3>{body}</h3>"
-        }
-    )
+    if not RESEND_API_KEY:
+        print("❌ RESEND_API_KEY not found in environment variables")
+        return
 
-    print("Email response:", response.status_code, response.text)
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": [to_email],
+                "subject": subject,
+                "html": f"<h3>{body}</h3>"
+            }
+        )
+
+        print("📧 Email response:", response.status_code)
+        print("📧 Email response body:", response.text)
+
+    except Exception as e:
+        print("❌ Email sending failed:", e)
