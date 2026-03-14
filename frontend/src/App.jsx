@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const API = "";
+const API = "http://127.0.0.1:8000";
 
 export default function App() {
   const [page, setPage] = useState("login");
