@@ -1,13 +1,8 @@
 fastapi
 uvicorn
 pymongo
-motor
-passlib
-bcrypt
+passlib[bcrypt]
+bcrypt==4.0.1
 numpy
 scikit-learn
-pandas
 python-multipart
-email-validator
-aiofiles
-certifi
