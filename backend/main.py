@@ -243,11 +243,11 @@ async def forgot_password(data: ForgotPasswordRequest):
         {"$set": {"reset_otp": otp}}
     )
 
-    # send_email(
-    #     data.email,
-    #     "Password Reset OTP",
-    #     f"Your OTP is: {otp}"
-    # )
+    send_email(
+        data.email,
+        "Password Reset OTP",
+        f"Your OTP is: {otp}"
+    )
     print(f"OTP for {data.email}: {otp}")
     return {"message": "OTP sent"}
 
