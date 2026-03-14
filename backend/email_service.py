@@ -21,24 +21,31 @@
 #         server.starttls()
 #         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 #         server.send_message(msg)
-import smtplib
 import os
-from email.mime.text import MIMEText
+import requests
 
-GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
-def send_email(to_email, subject, body):
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = GMAIL_ADDRESS
-    msg["To"] = to_email
-
+def send_email(to_email: str, subject: str, body: str):
     try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_ADDRESS, to_email, msg.as_string())
-        server.quit()
-        print("✅ Email sent successfully")
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": [to_email],
+                "subject": subject,
+                "html": f"<p>{body}</p>",
+            },
+        )
+
+        if response.status_code == 200 or response.status_code == 202:
+            print("✅ Email sent successfully")
+        else:
+            print("❌ Email failed:", response.text)
+
     except Exception as e:
-        print("❌ Email failed:", e)
+        print("❌ Email error:", e)
