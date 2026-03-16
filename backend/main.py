@@ -82,15 +82,10 @@ class ResetPasswordRequest(BaseModel):
 
 # ================= REGISTER =================
 
-@app.post("/api/register")
+@app.post("/register")
 async def register(data: RegisterRequest):
-    # Check for existing username (case-insensitive)
-    if users_collection.find_one({"username": {"$regex": f"^{data.username}$", "$options": "i"}}):
-        raise HTTPException(400, "Username already taken")
-
-    # Check for existing email
-    if users_collection.find_one({"email": data.email}):
-        raise HTTPException(400, "Email already registered")
+    if users_collection.find_one({"username": data.username}):
+        raise HTTPException(400, "User already exists")
 
     users_collection.insert_one({
         "username": data.username,
@@ -106,7 +101,7 @@ async def register(data: RegisterRequest):
 
 # ================= LOGIN =================
 
-@app.post("/api/login")
+@app.post("/login")
 async def login(data: LoginRequest):
 
     user = users_collection.find_one({"username": data.username})
@@ -128,7 +123,7 @@ async def login(data: LoginRequest):
 
 # ================= LOG BEHAVIOR =================
 
-@app.post("/api/log-behavior")
+@app.post("/log-behavior")
 async def log_behavior(data: BehaviorRequest):
     behavior_collection.insert_one({
         **data.dict(),
@@ -138,7 +133,7 @@ async def log_behavior(data: BehaviorRequest):
 
 # ================= ANALYZE RISK =================
 
-@app.post("/api/analyze-risk/{user_id}")
+@app.post("/analyze-risk/{user_id}")
 async def analyze_risk(user_id: str):
     logs = list(behavior_collection.find({"user_id": user_id}))
 
@@ -157,11 +152,14 @@ async def analyze_risk(user_id: str):
 
     if anomalies >= 1 or similarity < 0.7:
         user = users_collection.find_one({"_id": ObjectId(user_id)})
+        
+        # Ensure consistent high risk score
+        risk_score = random.randint(80, 95)
 
         risk_collection.insert_one({
             "user_id": user_id,
             "username": user["username"],
-            "risk_score": random.randint(40, 95),
+            "risk_score": risk_score,
             "risk_level": "High",
             "timestamp": datetime.now(IST)
         })
@@ -192,13 +190,13 @@ async def analyze_risk(user_id: str):
                 f"Verification Token:\n{token}"
             )
 
-        return {"risk_level": "High", "risk_score": 85, "action": "Blocked"}
+        return {"risk_level": "High", "risk_score": risk_score, "action": "Blocked"}
 
     return {"risk_level": "Medium", "risk_score": 50, "action": "Restricted"}
 
 # ================= VERIFY USER =================
 
-@app.post("/api/verify-user")
+@app.post("/verify-user")
 async def verify_user(data: VerifyRequest):
     user = users_collection.find_one({"verify_token": data.token})
 
@@ -219,7 +217,7 @@ async def verify_user(data: VerifyRequest):
 
 # ================= ADMIN UNBLOCK =================
 
-@app.post("/api/admin/unblock/{username}")
+@app.post("/admin/unblock/{username}")
 async def admin_unblock(username: str):
     user = users_collection.find_one({"username": username})
 
@@ -240,13 +238,14 @@ async def admin_unblock(username: str):
 
 # ================= FORGOT PASSWORD =================
 
-@app.post("/api/forgot-password")
+@app.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordRequest):
     user = users_collection.find_one({"email": data.email})
     if not user:
         raise HTTPException(404, "Email not found")
 
     otp = str(random.randint(100000, 999999))
+
     expiry_time = datetime.now(IST) + timedelta(minutes=5)
 
     users_collection.update_one(
@@ -260,14 +259,14 @@ async def forgot_password(data: ForgotPasswordRequest):
     send_email(
         data.email,
         "Password Reset OTP",
-        f"Your OTP is: {otp}. Valid for 5 minutes."
+        f"Your OTP is: {otp}"
     )
 
     return {"message": "OTP sent (valid for 5 minutes)"}
 
 # ================= RESET PASSWORD =================
 
-@app.post("/api/reset-password")
+@app.post("/reset-password")
 async def reset_password(data: ResetPasswordRequest):
 
     user = users_collection.find_one({
@@ -296,7 +295,7 @@ async def reset_password(data: ResetPasswordRequest):
 
 # ================= ADMIN ALERTS =================
 
-@app.get("/api/admin-notifications")
+@app.get("/admin-notifications")
 async def get_admin_notifications():
     return [
         {**a, "_id": str(a["_id"])}
@@ -305,7 +304,7 @@ async def get_admin_notifications():
 
 # ================= RISK REPORTS =================
 
-@app.get("/api/risk-reports")
+@app.get("/risk-reports")
 async def risk_reports():
     return [
         {**r, "_id": str(r["_id"])}
@@ -323,3 +322,8 @@ if os.path.exists(frontend_path):
     async def serve_react_app(full_path: str):
         index_file = os.path.join(frontend_path, "index.html")
         return FileResponse(index_file)
+
+@app.on_event("startup")
+def create_db_test():
+    users_collection.insert_one({"test": "database connection working"})
+    print("✅ Test document inserted")

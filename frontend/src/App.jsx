@@ -12,7 +12,7 @@ import {
 } from "recharts";
 // const API = "http://127.0.0.1:8000";
 
-const API = "https://ai-zero-trust-backend.onrender.com/api";
+const API = import.meta.env.VITE_API_URL || "";
 
 export default function App() {
   const [page, setPage] = useState("login");
@@ -87,10 +87,8 @@ export default function App() {
       await axios.post(`${API}/register`, { username, password, email, mobile });
       setStatus("✅ Registration Successful. Redirecting to Login...");
       setTimeout(() => setPage("login"), 1500);
-    } catch (err) {
-      const detail = err.response?.data?.detail;
-      const msg = detail ? `❌ ${detail}` : "❌ Server Error: Connection failed";
-      setStatus(msg);
+    } catch {
+      setStatus("❌ User already exists");
     }
   };
 

@@ -16,8 +16,6 @@ body {
 .reset-bg { background: transparent; }
 .verify-bg { background: transparent; }
 
-/* ===== CARD ===== */
-
 .card {
   background: #fff;
   padding: 25px;
@@ -28,11 +26,7 @@ body {
 }
 
 .alert-card-big {
-  background: #ffecec;
   border: 3px solid red;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 0 25px red;
 }
 
 input {
@@ -80,20 +74,18 @@ input {
   font-weight: bold;
 }
 
-/* ===== DASHBOARD ===== */
-
 .dashboard {
   min-height: 100vh;
   padding: 20px;
 }
 
 .user-bg {
-  background: radial-gradient(circle, #0f2027, #203a43, #2c5364);
+  background: radial-gradient(circle,#0f2027,#203a43,#2c5364);
   color: white;
 }
 
 .admin-bg {
-  background: linear-gradient(135deg, #111, #333);
+  background: linear-gradient(135deg,#111,#333);
   color: white;
 }
 
@@ -111,19 +103,18 @@ input {
 }
 
 .action {
-  padding: 7px;
-  margin: 5px 0;
+  padding: 7px;          /* was 15px */
+  margin: 5px 0;        /* was 10px */
   border-radius: 8px;
   cursor: pointer;
   text-align: center;
-  font-size: 14px;
+  font-size: 14px;      /* was 18px */
 }
 
-.normal   { background: green; }
-.abnormal { background: darkred; }
-.analyze  { background: #2196f3; }
 
-/* ===== RISK BOX ===== */
+.normal { background: green; }
+.abnormal { background: darkred; }
+.analyze { background: #2196f3; }
 
 .risk-box-big {
   margin-top: 20px;
@@ -132,11 +123,9 @@ input {
   text-align: center;
 }
 
-.low    { background: #1b5e20; }
+.low { background: #1b5e20; }
 .medium { background: #f9a825; color: black; }
-.high   { background: #b71c1c; animation: blink 1s infinite; }
-
-/* ===== ADMIN ===== */
+.high { background: #b71c1c; animation: blink 1s infinite; }
 
 .admin-panel {
   margin-top: 20px;
@@ -153,16 +142,38 @@ input {
   align-items: center;
 }
 
-/* ===== ANIMATIONS ===== */
-
 @keyframes blink {
   50% { opacity: 0.3; }
 }
 
+.blink {
+  animation: blinkAnim 1s infinite;
+}
+
 @keyframes blinkAnim {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.1; }
+  0% { opacity: 1; }
+  50% { opacity: 0.1; }
   100% { opacity: 1; }
+}
+
+.alert-card-big {
+  border: 3px solid red;
+  box-shadow: 0 0 20px red;
+}
+
+.alert-icon {
+  font-size: 40px;
+  animation: blinkAnim 1s infinite;
+}
+
+/* ===== High Risk Blinking Security Box (APPENDED ONLY) ===== */
+
+.alert-card-big {
+  background: #ffecec;
+  border: 3px solid red;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 0 25px red;
 }
 
 .blink {

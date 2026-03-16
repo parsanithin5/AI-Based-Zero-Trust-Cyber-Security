@@ -1,44 +1,52 @@
-import requests
 import os
+from mailersend import emails
+from dotenv import load_dotenv
 
-MAILERSEND_API_KEY = os.getenv("MAILERSEND_API_KEY")
+# Load env variables
+load_dotenv()
+
+API_KEY = os.getenv("MAILERSEND_API_KEY")
+SENDER_EMAIL = os.getenv("MAILERSEND_SENDER")
 
 def send_email(to_email, subject, body):
-
-    if not MAILERSEND_API_KEY:
+    """
+    Sends an email using MailerSend SDK.
+    """
+    if not API_KEY:
         print("❌ MAILERSEND_API_KEY not found in environment variables")
         return
+    
+    if not SENDER_EMAIL:
+        print("❌ MAILERSEND_SENDER not found in environment variables")
+        return
+
+    print(f"📧 Attempting to send email to: {to_email}")
+
+    mailer = emails.NewEmails(API_KEY)
+
+    mail_from = {
+        "name": "Zero Trust Security",
+        "email": SENDER_EMAIL,
+    }
+
+    recipients = [
+        {
+            "name": "Security User",
+            "email": to_email,
+        }
+    ]
+
+    mail_body = {}
+
+    mailer.set_mail_from(mail_from, mail_body)
+    mailer.set_mail_to(recipients, mail_body)
+    mailer.set_subject(subject, mail_body)
+    mailer.set_html_content(f"<div style='font-family: Arial; padding: 20px; border: 1px solid #ddd; border-radius: 8px;'><h2>{subject}</h2><p>{body}</p></div>", mail_body)
+    mailer.set_plaintext_content(body, mail_body)
 
     try:
-        response = requests.post(
-            "https://api.mailersend.com/v1/email",
-            headers={
-                "Authorization": f"Bearer {MAILERSEND_API_KEY}",
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
-            },
-            json={
-                "from": {
-                    "email": "noreply@test-r9084zv6m0vgw63d.mlsender.net",
-                    "name": "Zero Trust Security"
-                },
-                "to": [
-                    {
-                        "email": to_email
-                    }
-                ],
-                "subject": subject,
-                "text": body,
-                "html": f"<h3>{body}</h3>"
-            }
-        )
-
-        print("📧 MailerSend response:", response.status_code)
-
-        if response.status_code == 202:
-            print("✅ Email sent successfully via MailerSend")
-        else:
-            print("❌ MailerSend error:", response.text)
-
+        # The SDK returns the raw response or errors out
+        response = mailer.send(mail_body)
+        print(f"✅ Email Sent! Response: {response}")
     except Exception as e:
-        print("❌ Email sending failed:", e)
+        print(f"❌ MailerSend Error: {e}")

@@ -1,23 +1,18 @@
 services:
-  # Backend Web Service (FastAPI)
   - type: web
-    name: ai-zero-trust-backend
+    name: zero-trust-security
     env: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: "npm install --prefix frontend && npm run build --prefix frontend && pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: MONGO_URL
         sync: false
       - key: MAILERSEND_API_KEY
         sync: false
-
-  # Frontend Static Site (React/Vite)
-  - type: web
-    name: ai-zero-trust-frontend
-    runtime: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
-    # If the frontend needs to know the backend URL at build time, 
-    # Render Blueprints can't easily auto-inject a service's own URL into another static site's env 
-    # without a manual update or a clever rewrite.
+      - key: MAILERSEND_SENDER
+        sync: false
+      - key: NODE_VERSION
+        value: 18.16.0
+      - key: VITE_API_URL
+        value: "" # Empty means same origin (producion build serves backend and frontend together)
