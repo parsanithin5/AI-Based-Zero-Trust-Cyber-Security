@@ -126,18 +126,24 @@ async def register(data: RegisterRequest):
 
 @app.post("/login")
 async def login(data: LoginRequest):
-
+    print(f"DEBUG: Login attempt for username: {data.username}")
     user = users_collection.find_one({"username": data.username})
 
     if not user:
+        print(f"DEBUG: User '{data.username}' not found in database")
         raise HTTPException(401, "Invalid credentials")
+
+    print(f"DEBUG: User found. Status: {user.get('status')}, Role: {user.get('role')}")
 
     if not pwd.verify(data.password, user["password"]):
+        print(f"DEBUG: Password verification failed for user '{data.username}'")
         raise HTTPException(401, "Invalid credentials")
 
-    if user["status"] == "blocked":
+    if user.get("status") == "blocked":
+        print(f"DEBUG: User '{data.username}' is blocked")
         raise HTTPException(403, "Account blocked")
 
+    print(f"DEBUG: Login successful for user '{data.username}'")
     return {
         "user_id": str(user["_id"]),
         "role": user["role"],
