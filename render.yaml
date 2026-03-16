@@ -12,9 +12,9 @@ services:
         sync: false
 
   # Frontend Static Site (React/Vite)
-  - type: static
+  - type: web
     name: ai-zero-trust-frontend
-    env: static
+    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     # If the frontend needs to know the backend URL at build time, 
