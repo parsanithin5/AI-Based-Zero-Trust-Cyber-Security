@@ -9,7 +9,7 @@ MONGO_URL = os.getenv("MONGO_URL")
 
 if not MONGO_URL:
     # Fallback to hardcoded for now if env not found
-    MONGO_URL = "mongodb+srv://ZeroTrustadmin:ZeroTrust123@cluster0.mkqmvyb.mongodb.net/?appName=Cluster0"
+    MONGO_URL = "mongodb+srv://nithin777:nithin777@cluster0.f3czplq.mongodb.net/?appName=Cluster0"
 
 client = MongoClient(MONGO_URL)
 
