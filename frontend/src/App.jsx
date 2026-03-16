@@ -85,8 +85,9 @@ export default function App() {
     }
     try {
       await axios.post(`${API}/register`, { username, password, email, mobile });
-      setStatus("✅ Registration Successful. Redirecting to Login...");
-      setTimeout(() => setPage("login"), 1500);
+      setStatus("✅ OTP Sent to your Email. Please verify to activate account.");
+      setVerifyStep("token");
+      setPage("verify");
     } catch {
       setStatus("❌ User already exists");
     }
@@ -294,8 +295,17 @@ export default function App() {
     return (
       <div className="page verify-bg">
         <div className="card alert-card-big">
-          <h1 className="blink">🚨 SECURITY THREAT</h1>
-          <h3>ACCOUNT BLOCKED</h3>
+          {verifyStep === "token" && status.includes("OTP Sent") ? (
+            <>
+              <h2>Verify Your Account</h2>
+              <p>Please enter the 6-digit OTP sent to your email.</p>
+            </>
+          ) : (
+            <>
+              <h1 className="blink">🚨 SECURITY THREAT</h1>
+              <h3>ACCOUNT BLOCKED</h3>
+            </>
+          )}
 
           {verifyStep === "email" && (
             <>

@@ -87,17 +87,28 @@ async def register(data: RegisterRequest):
     if users_collection.find_one({"username": data.username}):
         raise HTTPException(400, "User already exists")
 
+    # Generate a 6-digit OTP for registration verification
+    otp = str(random.randint(100000, 999999))
+
     users_collection.insert_one({
         "username": data.username,
         "password": pwd.hash(data.password),
         "email": data.email,
         "mobile": data.mobile,
         "role": "user",
-        "status": "active",
+        "status": "pending",  # Initial status is pending verification
+        "verify_token": otp,
         "created_at": datetime.now(IST)
     })
 
-    return {"message": "Registration successful"}
+    # Send OTP via MailerSend
+    send_email(
+        data.email,
+        "Zero Trust Security - Registration OTP",
+        f"Thank you for registering. Your verification OTP is: {otp}"
+    )
+
+    return {"message": "OTP sent to your email. Please verify."}
 
 # ================= LOGIN =================
 
