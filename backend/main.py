@@ -43,6 +43,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    print(f"🚨 GLOBAL ERROR: {str(exc)}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
+
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Frontend is served at / by the catch-all route at the bottom
@@ -126,29 +138,36 @@ async def register(data: RegisterRequest):
 
 @app.post("/login")
 async def login(data: LoginRequest):
-    print(f"DEBUG: Login attempt for username: {data.username}")
-    user = users_collection.find_one({"username": data.username})
+    try:
+        print(f"DEBUG: Login attempt for username: {data.username}")
+        user = users_collection.find_one({"username": data.username})
 
-    if not user:
-        print(f"DEBUG: User '{data.username}' not found in database")
-        raise HTTPException(401, "Invalid credentials")
+        if not user:
+            print(f"DEBUG: User '{data.username}' not found in database")
+            raise HTTPException(401, "Invalid credentials")
 
-    print(f"DEBUG: User found. Status: {user.get('status')}, Role: {user.get('role')}")
+        print(f"DEBUG: User found. Status: {user.get('status')}, Role: {user.get('role')}")
 
-    if not pwd.verify(data.password, user["password"]):
-        print(f"DEBUG: Password verification failed for user '{data.username}'")
-        raise HTTPException(401, "Invalid credentials")
+        if not pwd.verify(data.password, user["password"]):
+            print(f"DEBUG: Password verification failed for user '{data.username}'")
+            raise HTTPException(401, "Invalid credentials")
 
-    if user.get("status") == "blocked":
-        print(f"DEBUG: User '{data.username}' is blocked")
-        raise HTTPException(403, "Account blocked")
+        if user.get("status") == "blocked":
+            print(f"DEBUG: User '{data.username}' is blocked")
+            raise HTTPException(403, "Account blocked")
 
-    print(f"DEBUG: Login successful for user '{data.username}'")
-    return {
-        "user_id": str(user["_id"]),
-        "role": user["role"],
-        "message": "Login successful"
-    }
+        print(f"DEBUG: Login successful for user '{data.username}'")
+        return {
+            "user_id": str(user["_id"]),
+            "role": user["role"],
+            "message": "Login successful"
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"❌ LOGIN ERROR: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(500, f"Login failed: {str(e)}")
 
 # ================= LOG BEHAVIOR =================
 
@@ -339,6 +358,26 @@ async def risk_reports():
         {**r, "_id": str(r["_id"])}
         for r in risk_collection.find().sort("timestamp", 1)
     ]
+
+# ================= DB CHECK =================
+
+@app.get("/db-check")
+async def db_check():
+    try:
+        from database import client
+        client.admin.command('ping')
+        count = users_collection.count_documents({})
+        return {
+            "status": "connected",
+            "database": "Atlas",
+            "user_count": count,
+            "message": "Database is reachable and responding."
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 # ================= SERVE FRONTEND =================
 
