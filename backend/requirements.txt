@@ -8,5 +8,5 @@ scikit-learn
 python-multipart
 requests
 python-dotenv
-mailersend==0.8.0
+# mailersend SDK removed to avoid versioning issues (using requests instead)
 gunicorn
