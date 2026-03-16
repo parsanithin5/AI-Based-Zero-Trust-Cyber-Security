@@ -364,18 +364,29 @@ async def risk_reports():
 @app.get("/db-check")
 async def db_check():
     try:
-        from database import client
+        from database import client, MONGO_URL
+        # Mask the password in MONGO_URL for security
+        masked_url = "URL Hidden"
+        if MONGO_URL:
+            host_part = MONGO_URL.split("@")[-1] if "@" in MONGO_URL else "Unknown"
+            masked_url = f"mongodb+srv://***:***@{host_part}"
+            
         client.admin.command('ping')
         count = users_collection.count_documents({})
         return {
             "status": "connected",
             "database": "Atlas",
+            "host": client.address,
+            "url_detected": masked_url,
             "user_count": count,
             "message": "Database is reachable and responding."
         }
     except Exception as e:
+        from database import MONGO_URL
+        host_part = MONGO_URL.split("@")[-1] if MONGO_URL and "@" in MONGO_URL else "Unknown"
         return {
             "status": "error",
+            "url_detected": f"mongodb+srv://***:***@{host_part}",
             "message": str(e)
         }
 
