@@ -3,6 +3,30 @@ body {
   font-family: Arial, sans-serif;
 }
 
+/* ===== App Header with Logo ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.app-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.app-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1e3c72;
+  letter-spacing: 0.5px;
+}
+
+
 .page {
   height: 100vh;
   display: flex;

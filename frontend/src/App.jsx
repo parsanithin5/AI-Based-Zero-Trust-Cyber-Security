@@ -207,7 +207,10 @@ export default function App() {
     return (
       <div className="page login-bg">
         <div className="card">
-          <h2>🛡 Zero Trust Security</h2>
+          <div className="app-header">
+            <img src="/logo.png" alt="Zero Trust Logo" className="app-logo" />
+            <h2>Zero Trust Security</h2>
+          </div>
 
           <div>
             <button onClick={() => setLoginMode("user")}>User Login</button>
