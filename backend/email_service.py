@@ -19,7 +19,7 @@ def send_email(to_email, subject, body):
             },
             json={
                 "from": {
-                    "email": "noreply@trial-351ndgwp9oylzqx8.mlsender.net",
+                    "email": "noreply@test-r9084zv6m0vgw63d.mlsender.net",
                     "name": "Zero Trust Security"
                 },
                 "to": [

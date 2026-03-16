@@ -88,8 +88,9 @@ export default function App() {
       setStatus("✅ Registration Successful. Redirecting to Login...");
       setTimeout(() => setPage("login"), 1500);
     } catch (err) {
-      const msg = err.response?.data?.detail || "❌ User already exists";
-      setStatus(`❌ ${msg}`);
+      const detail = err.response?.data?.detail;
+      const msg = detail ? `❌ ${detail}` : "❌ Server Error: Connection failed";
+      setStatus(msg);
     }
   };
 
