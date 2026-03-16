@@ -45,11 +45,7 @@ app.add_middleware(
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ================= ROOT =================
-
-@app.get("/")
-def root():
-    return {"status": "Zero Trust Backend Running"}
+# Frontend is served at / by the catch-all route at the bottom
 
 # ================= MODELS =================
 
