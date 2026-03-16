@@ -80,31 +80,47 @@ class ResetPasswordRequest(BaseModel):
 
 @app.post("/register")
 async def register(data: RegisterRequest):
-    if users_collection.find_one({"username": data.username}):
-        raise HTTPException(400, "User already exists")
+    try:
+        if users_collection.find_one({"username": data.username}):
+            raise HTTPException(400, "User already exists")
 
-    # Generate a 6-digit OTP for registration verification
-    otp = str(random.randint(100000, 999999))
+        # Generate a 6-digit OTP for registration verification
+        otp = str(random.randint(100000, 999999))
+        print(f"DEBUG: Generated OTP {otp} for user {data.username}")
 
-    users_collection.insert_one({
-        "username": data.username,
-        "password": pwd.hash(data.password),
-        "email": data.email,
-        "mobile": data.mobile,
-        "role": "user",
-        "status": "pending",  # Initial status is pending verification
-        "verify_token": otp,
-        "created_at": datetime.now(IST)
-    })
+        user_data = {
+            "username": data.username,
+            "password": pwd.hash(data.password),
+            "email": data.email,
+            "mobile": data.mobile,
+            "role": "user",
+            "status": "pending",
+            "verify_token": otp,
+            "created_at": datetime.now(IST)
+        }
 
-    # Send OTP via MailerSend
-    send_email(
-        data.email,
-        "Zero Trust Security - Registration OTP",
-        f"Thank you for registering. Your verification OTP is: {otp}"
-    )
+        print(f"DEBUG: Attempting to insert user {data.username} into database")
+        users_collection.insert_one(user_data)
+        print(f"DEBUG: Successfully inserted user {data.username}")
 
-    return {"message": "OTP sent to your email. Please verify."}
+        # Send OTP via MailerSend
+        print(f"DEBUG: Attempting to send email to {data.email}")
+        send_email(
+            data.email,
+            "Zero Trust Security - Registration OTP",
+            f"Thank you for registering. Your verification OTP is: {otp}"
+        )
+        print(f"DEBUG: send_email call completed")
+
+        return {"message": "OTP sent to your email. Please verify."}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"❌ REGISTRATION ERROR: {str(e)}")
+        # Log the full error to Render console
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Registration failed: {str(e)}")
 
 # ================= LOGIN =================
 
