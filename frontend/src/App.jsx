@@ -87,8 +87,9 @@ export default function App() {
       await axios.post(`${API}/register`, { username, password, email, mobile });
       setStatus("✅ Registration Successful. Redirecting to Login...");
       setTimeout(() => setPage("login"), 1500);
-    } catch {
-      setStatus("❌ User already exists");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "❌ User already exists";
+      setStatus(`❌ ${msg}`);
     }
   };
 

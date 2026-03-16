@@ -84,8 +84,13 @@ class ResetPasswordRequest(BaseModel):
 
 @app.post("/register")
 async def register(data: RegisterRequest):
-    if users_collection.find_one({"username": data.username}):
-        raise HTTPException(400, "User already exists")
+    # Check for existing username (case-insensitive)
+    if users_collection.find_one({"username": {"$regex": f"^{data.username}$", "$options": "i"}}):
+        raise HTTPException(400, "Username already taken")
+
+    # Check for existing email
+    if users_collection.find_one({"email": data.email}):
+        raise HTTPException(400, "Email already registered")
 
     users_collection.insert_one({
         "username": data.username,
