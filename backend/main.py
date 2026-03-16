@@ -323,7 +323,4 @@ if os.path.exists(frontend_path):
         index_file = os.path.join(frontend_path, "index.html")
         return FileResponse(index_file)
 
-@app.on_event("startup")
-def create_db_test():
-    users_collection.insert_one({"test": "database connection working"})
-    print("✅ Test document inserted")
+# No startup events currently needed

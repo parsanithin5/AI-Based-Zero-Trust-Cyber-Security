@@ -8,4 +8,5 @@ scikit-learn
 python-multipart
 requests
 python-dotenv
-mailersend
+mailersend
+gunicorn
