@@ -12,7 +12,7 @@ import {
 } from "recharts";
 // const API = "http://127.0.0.1:8000";
 
-const API = "https://ai-based-zero-trust-cyber-security.onrender.com";
+const API = "https://ai-based-zero-trust-cyber-security.onrender.com/api";
 
 export default function App() {
   const [page, setPage] = useState("login");

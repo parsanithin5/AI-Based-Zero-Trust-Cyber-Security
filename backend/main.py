@@ -82,7 +82,7 @@ class ResetPasswordRequest(BaseModel):
 
 # ================= REGISTER =================
 
-@app.post("/register")
+@app.post("/api/register")
 async def register(data: RegisterRequest):
     # Check for existing username (case-insensitive)
     if users_collection.find_one({"username": {"$regex": f"^{data.username}$", "$options": "i"}}):
@@ -106,7 +106,7 @@ async def register(data: RegisterRequest):
 
 # ================= LOGIN =================
 
-@app.post("/login")
+@app.post("/api/login")
 async def login(data: LoginRequest):
 
     user = users_collection.find_one({"username": data.username})
@@ -128,7 +128,7 @@ async def login(data: LoginRequest):
 
 # ================= LOG BEHAVIOR =================
 
-@app.post("/log-behavior")
+@app.post("/api/log-behavior")
 async def log_behavior(data: BehaviorRequest):
     behavior_collection.insert_one({
         **data.dict(),
@@ -138,7 +138,7 @@ async def log_behavior(data: BehaviorRequest):
 
 # ================= ANALYZE RISK =================
 
-@app.post("/analyze-risk/{user_id}")
+@app.post("/api/analyze-risk/{user_id}")
 async def analyze_risk(user_id: str):
     logs = list(behavior_collection.find({"user_id": user_id}))
 
@@ -198,7 +198,7 @@ async def analyze_risk(user_id: str):
 
 # ================= VERIFY USER =================
 
-@app.post("/verify-user")
+@app.post("/api/verify-user")
 async def verify_user(data: VerifyRequest):
     user = users_collection.find_one({"verify_token": data.token})
 
@@ -219,7 +219,7 @@ async def verify_user(data: VerifyRequest):
 
 # ================= ADMIN UNBLOCK =================
 
-@app.post("/admin/unblock/{username}")
+@app.post("/api/admin/unblock/{username}")
 async def admin_unblock(username: str):
     user = users_collection.find_one({"username": username})
 
@@ -240,7 +240,7 @@ async def admin_unblock(username: str):
 
 # ================= FORGOT PASSWORD =================
 
-@app.post("/forgot-password")
+@app.post("/api/forgot-password")
 async def forgot_password(data: ForgotPasswordRequest):
     user = users_collection.find_one({"email": data.email})
     if not user:
@@ -267,7 +267,7 @@ async def forgot_password(data: ForgotPasswordRequest):
 
 # ================= RESET PASSWORD =================
 
-@app.post("/reset-password")
+@app.post("/api/reset-password")
 async def reset_password(data: ResetPasswordRequest):
 
     user = users_collection.find_one({
@@ -296,7 +296,7 @@ async def reset_password(data: ResetPasswordRequest):
 
 # ================= ADMIN ALERTS =================
 
-@app.get("/admin-notifications")
+@app.get("/api/admin-notifications")
 async def get_admin_notifications():
     return [
         {**a, "_id": str(a["_id"])}
@@ -305,7 +305,7 @@ async def get_admin_notifications():
 
 # ================= RISK REPORTS =================
 
-@app.get("/risk-reports")
+@app.get("/api/risk-reports")
 async def risk_reports():
     return [
         {**r, "_id": str(r["_id"])}
