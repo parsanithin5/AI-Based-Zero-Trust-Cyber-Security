@@ -5,52 +5,41 @@ from dotenv import load_dotenv
 # Load env variables
 load_dotenv()
 
-API_KEY = os.getenv("MAILERSEND_API_KEY")
-SENDER_EMAIL = os.getenv("MAILERSEND_SENDER")
+SERVICE_ID = os.getenv("EMAILJS_SERVICE_ID")
+TEMPLATE_ID = os.getenv("EMAILJS_TEMPLATE_ID")
+PUBLIC_KEY = os.getenv("EMAILJS_PUBLIC_KEY")
+PRIVATE_KEY = os.getenv("EMAILJS_PRIVATE_KEY")
 
-def send_email(to_email, subject, body):
+def send_email(to_email, subject, message, otp=None):
     """
-    Sends an email using MailerSend HTTP API directly (avoiding SDK version issues).
+    Sends an email using EmailJS REST API.
     """
-    if not API_KEY:
-        print("❌ MAILERSEND_API_KEY not found in environment variables")
-        return
-    
-    if not SENDER_EMAIL:
-        print("❌ MAILERSEND_SENDER not found in environment variables")
+    if not all([SERVICE_ID, TEMPLATE_ID, PUBLIC_KEY, PRIVATE_KEY]):
+        print("❌ EMAILJS credentials missing in .env")
         return
 
-    print(f"📧 Attempting to send email to: {to_email}")
+    print(f"📧 Attempting to send email to: {to_email} via EmailJS")
 
-    url = "https://api.mailersend.com/v1/email"
+    url = "https://api.emailjs.com/api/v1.0/email/send"
     
-    headers = {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-        "Authorization": f"Bearer {API_KEY}"
-    }
-
     data = {
-        "from": {
-            "email": SENDER_EMAIL,
-            "name": "Zero Trust Security"
-        },
-        "to": [
-            {
-                "email": to_email,
-                "name": "Security User"
-            }
-        ],
-        "subject": subject,
-        "text": body,
-        "html": f"<div style='font-family: Arial; padding: 20px; border: 1px solid #ddd; border-radius: 8px;'><h2>{subject}</h2><p>{body}</p></div>"
+        "service_id": SERVICE_ID,
+        "template_id": TEMPLATE_ID,
+        "user_id": PUBLIC_KEY,
+        "accessToken": PRIVATE_KEY,
+        "template_params": {
+            "to_email": to_email,
+            "subject": subject,
+            "message": message,
+            "otp": otp if otp else ""
+        }
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 202:
-            print(f"✅ Email Sent Successfully! Status Code: {response.status_code}")
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            print(f"✅ Email Sent Successfully via EmailJS!")
         else:
-            print(f"❌ MailerSend API Error: {response.status_code} - {response.text}")
+            print(f"❌ EmailJS API Error: {response.status_code} - {response.text}")
     except Exception as e:
         print(f"❌ Request Error: {e}")

@@ -119,8 +119,9 @@ async def register(data: RegisterRequest):
         print(f"DEBUG: Attempting to send email to {data.email}")
         send_email(
             data.email,
-            "Zero Trust Security - Registration OTP",
-            f"Thank you for registering. Your verification OTP is: {otp}"
+            "Verify Your Account",
+            "Welcome to the Zero Trust Security System! Please use the following One-Time Password (OTP) to complete your verification process.",
+            otp=otp
         )
         print(f"DEBUG: send_email call completed")
 
@@ -306,8 +307,9 @@ async def forgot_password(data: ForgotPasswordRequest):
 
     send_email(
         data.email,
-        "Password Reset OTP",
-        f"Your OTP is: {otp}"
+        "Password Reset Request",
+        "We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed. This code is valid for 5 minutes.",
+        otp=otp
     )
 
     return {"message": "OTP sent (valid for 5 minutes)"}
