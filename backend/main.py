@@ -100,10 +100,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # ================= STARTUP =================
 @app.on_event("startup")
 async def startup_db_client():
-    # Create unique indexes for production-grade duplicate prevention
-    users_collection.create_index("username", unique=True)
-    users_collection.create_index("email", unique=True)
-    logger.info("Database unique indexes verified/created.")
+    try:
+        users_collection.create_index("username", unique=True)
+        users_collection.create_index("email", unique=True)
+        logger.info("Database unique indexes verified/created.")
+    except Exception as e:
+        logger.warning(f"Could not enforce unique indexes on startup (duplicates may already exist manually clean DB): {e}")
 
 from fastapi.responses import JSONResponse
 import traceback
