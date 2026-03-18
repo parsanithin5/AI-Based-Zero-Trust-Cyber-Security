@@ -1,7 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -11,6 +11,10 @@ import uuid
 import random
 import numpy as np
 from dotenv import load_dotenv
+import logging
+import traceback
+from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer
 
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -28,28 +32,86 @@ from email_service import send_email
 # ================= LOAD ENV =================
 load_dotenv()
 
+# ================= LOGGING =================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("zero_trust_api")
+
+# ================= SECURITY CONFIG =================
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-production-key-change-me")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+PROD_MODE = os.getenv("RENDER", "false").lower() == "true"
+
 # ================= TIMEZONE =================
 IST = timezone(timedelta(hours=5, minutes=30))
 
 # ================= APP =================
+app = FastAPI(
+    title="AI-Based Zero Trust Security System",
+    docs_url="/docs" if not PROD_MODE else None,
+    redoc_url="/redoc" if not PROD_MODE else None
+)
 
-app = FastAPI(title="AI-Based Zero Trust Security System")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL] if FRONTEND_URL != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = users_collection.find_one({"username": username})
+    if user is None:
+        raise credentials_exception
+    return user
+
+# ================= STARTUP =================
+@app.on_event("startup")
+async def startup_db_client():
+    # Create unique indexes for production-grade duplicate prevention
+    users_collection.create_index("username", unique=True)
+    users_collection.create_index("email", unique=True)
+    logger.info("Database unique indexes verified/created.")
 
 from fastapi.responses import JSONResponse
 import traceback
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    print(f"🚨 GLOBAL ERROR: {str(exc)}")
-    traceback.print_exc()
+    logger.error(f"🚨 GLOBAL ERROR: {str(exc)}")
+    logger.error(traceback.format_exc())
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal Server Error: {str(exc)}"}
@@ -94,11 +156,14 @@ class ResetPasswordRequest(BaseModel):
 async def register(data: RegisterRequest):
     try:
         if users_collection.find_one({"username": data.username}):
-            raise HTTPException(400, "User already exists")
+            raise HTTPException(400, "Username already exists")
+
+        if users_collection.find_one({"email": data.email}):
+            raise HTTPException(400, "Email already in use")
 
         # Generate a 6-digit OTP for registration verification
         otp = str(random.randint(100000, 999999))
-        print(f"DEBUG: Generated OTP {otp} for user {data.username}")
+        logger.info(f"Generated OTP for user {data.username}")
 
         user_data = {
             "username": data.username,
@@ -111,28 +176,26 @@ async def register(data: RegisterRequest):
             "created_at": datetime.now(IST)
         }
 
-        print(f"DEBUG: Attempting to insert user {data.username} into database")
+        logger.info(f"Attempting to insert user {data.username} into database")
         users_collection.insert_one(user_data)
-        print(f"DEBUG: Successfully inserted user {data.username}")
+        logger.info(f"Successfully inserted user {data.username}")
 
-        # Send OTP via MailerSend
-        print(f"DEBUG: Attempting to send email to {data.email}")
+        # Send OTP via EmailJS
+        logger.info(f"Attempting to send email to {data.email}")
         send_email(
             data.email,
             "Verify Your Account",
             "Welcome to the Zero Trust Security System! Please use the following One-Time Password (OTP) to complete your verification process.",
             otp=otp
         )
-        print(f"DEBUG: send_email call completed")
+        logger.info(f"send_email call completed")
 
         return {"message": "OTP sent to your email. Please verify."}
     except HTTPException as he:
         raise he
     except Exception as e:
-        print(f"❌ REGISTRATION ERROR: {str(e)}")
-        # Log the full error to Render console
-        import traceback
-        traceback.print_exc()
+        logger.error(f"❌ REGISTRATION ERROR: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(500, f"Registration failed: {str(e)}")
 
 # ================= LOGIN =================
@@ -140,25 +203,27 @@ async def register(data: RegisterRequest):
 @app.post("/login")
 async def login(data: LoginRequest):
     try:
-        print(f"DEBUG: Login attempt for username: {data.username}")
+        logger.info(f"Login attempt for username: {data.username}")
         user = users_collection.find_one({"username": data.username})
 
         if not user:
-            print(f"DEBUG: User '{data.username}' not found in database")
+            logger.warning(f"User '{data.username}' not found")
             raise HTTPException(401, "Invalid credentials")
 
-        print(f"DEBUG: User found. Status: {user.get('status')}, Role: {user.get('role')}")
-
         if not pwd.verify(data.password, user["password"]):
-            print(f"DEBUG: Password verification failed for user '{data.username}'")
+            logger.warning(f"Password verification failed for '{data.username}'")
             raise HTTPException(401, "Invalid credentials")
 
         if user.get("status") == "blocked":
-            print(f"DEBUG: User '{data.username}' is blocked")
+            logger.warning(f"User '{data.username}' is blocked")
             raise HTTPException(403, "Account blocked")
 
-        print(f"DEBUG: Login successful for user '{data.username}'")
+        access_token = create_access_token(data={"sub": user["username"]})
+        
+        logger.info(f"Login successful for user '{data.username}'")
         return {
+            "access_token": access_token,
+            "token_type": "bearer",
             "user_id": str(user["_id"]),
             "role": user["role"],
             "message": "Login successful"
@@ -166,14 +231,14 @@ async def login(data: LoginRequest):
     except HTTPException as he:
         raise he
     except Exception as e:
-        print(f"❌ LOGIN ERROR: {str(e)}")
-        traceback.print_exc()
+        logger.error(f"❌ LOGIN ERROR: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(500, f"Login failed: {str(e)}")
 
 # ================= LOG BEHAVIOR =================
 
 @app.post("/log-behavior")
-async def log_behavior(data: BehaviorRequest):
+async def log_behavior(data: BehaviorRequest, current_user: dict = Depends(get_current_user)):
     behavior_collection.insert_one({
         **data.dict(),
         "timestamp": datetime.now(IST)
@@ -183,7 +248,7 @@ async def log_behavior(data: BehaviorRequest):
 # ================= ANALYZE RISK =================
 
 @app.post("/analyze-risk/{user_id}")
-async def analyze_risk(user_id: str):
+async def analyze_risk(user_id: str, current_user: dict = Depends(get_current_user)):
     logs = list(behavior_collection.find({"user_id": user_id}))
 
     if len(logs) < 3:
@@ -245,29 +310,23 @@ async def analyze_risk(user_id: str):
 
 # ================= VERIFY USER =================
 
-@app.post("/verify-user")
-async def verify_user(data: VerifyRequest):
-    user = users_collection.find_one({"verify_token": data.token})
+    access_token = create_access_token(data={"sub": user["username"]})
 
-    if not user:
-        raise HTTPException(400, "Invalid token")
-
-    users_collection.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"status": "active"},
-         "$unset": {"verify_token": "", "blocked_at": ""}}
-    )
-
-    admin_notifications.delete_many({"username": user["username"]})
-    behavior_collection.delete_many({"user_id": str(user["_id"])})
-    risk_collection.delete_many({"user_id": str(user["_id"])})
-
-    return {"message": "User verified"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": str(user["_id"]),
+        "role": user["role"],
+        "message": "User verified"
+    }
 
 # ================= ADMIN UNBLOCK =================
 
 @app.post("/admin/unblock/{username}")
-async def admin_unblock(username: str):
+async def admin_unblock(username: str, current_user: dict = Depends(get_current_user)):
+    # Verify admin role
+    if current_user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
     user = users_collection.find_one({"username": username})
 
     if not user:
@@ -285,81 +344,77 @@ async def admin_unblock(username: str):
 
     return {"message": "User unblocked"}
 
-# ================= FORGOT PASSWORD =================
+# ================= FORGOT / RESET PASSWORD =================
 
 @app.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordRequest):
     user = users_collection.find_one({"email": data.email})
     if not user:
-        raise HTTPException(404, "Email not found")
+        logger.warning(f"Forgot password attempt for non-existent email: {data.email}")
+        raise HTTPException(404, "User not found")
 
     otp = str(random.randint(100000, 999999))
-
-    expiry_time = datetime.now(IST) + timedelta(minutes=5)
+    expiry = datetime.now(IST) + timedelta(minutes=10)
 
     users_collection.update_one(
-        {"_id": user["_id"]},
-        {"$set": {
-            "reset_otp": otp,
-            "otp_expiry": expiry_time
-        }}
+        {"email": data.email},
+        {"$set": {"otp": otp, "otp_expiry": expiry}}
     )
 
+    logger.info(f"Sending password reset OTP to {data.email}")
     send_email(
         data.email,
-        "Password Reset Request",
-        "We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed. This code is valid for 5 minutes.",
+        "Password Reset OTP",
+        "You requested a password reset. Please use the following One-Time Password (OTP) to reset your password. This OTP will expire in 10 minutes.",
         otp=otp
     )
 
-    return {"message": "OTP sent (valid for 5 minutes)"}
-
-# ================= RESET PASSWORD =================
+    return {"message": "OTP sent to your email"}
 
 @app.post("/reset-password")
 async def reset_password(data: ResetPasswordRequest):
-
     user = users_collection.find_one({
         "email": data.email,
-        "reset_otp": data.otp
+        "otp": data.otp
     })
 
     if not user:
-        raise HTTPException(400, "Invalid OTP")
+        logger.warning(f"Invalid OTP attempt for {data.email}")
+        raise HTTPException(400, "Invalid OTP or email")
 
-    if datetime.now(IST) > user.get("otp_expiry"):
-        raise HTTPException(400, "OTP expired")
+    if datetime.now(IST) > user.get("otp_expiry", datetime.min.replace(tzinfo=IST)):
+        logger.warning(f"Expired OTP attempt for {data.email}")
+        raise HTTPException(400, "OTP has expired")
 
     users_collection.update_one(
-        {"_id": user["_id"]},
-        {
-            "$set": {"password": pwd.hash(data.new_password)},
-            "$unset": {
-                "reset_otp": "",
-                "otp_expiry": ""
-            }
-        }
+        {"email": data.email},
+        {"$set": {"password": pwd.hash(data.new_password)},
+         "$unset": {"otp": "", "otp_expiry": ""}}
     )
 
-    return {"message": "Password reset successful"}
+    logger.info(f"Password reset successful for {data.email}")
+# ================= ADMIN DASHBOARD =================
 
-# ================= ADMIN ALERTS =================
+@app.get("/admin/notifications")
+async def get_notifications(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    return list(admin_notifications.find({}, {"_id": 0}).sort("timestamp", -1))
 
-@app.get("/admin-notifications")
-async def get_admin_notifications():
-    return [
-        {**a, "_id": str(a["_id"])}
-        for a in admin_notifications.find().sort("timestamp", -1)
-    ]
+@app.get("/admin/risk-reports")
+async def get_risk_reports(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    return list(risk_collection.find({}, {"_id": 0}).sort("timestamp", -1))
 
-# ================= RISK REPORTS =================
-
-@app.get("/risk-reports")
-async def risk_reports():
-    return [
-        {**r, "_id": str(r["_id"])}
-        for r in risk_collection.find().sort("timestamp", 1)
-    ]
+@app.get("/admin/users")
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(403, "Admin access required")
+    users = list(users_collection.find({}, {"password": 0, "verify_token": 0}))
+    for u in users:
+        u["_id"] = str(u["_id"])
+    return users
 
 # ================= DB CHECK =================
 
