@@ -220,6 +220,10 @@ async def login(data: LoginRequest):
             logger.warning(f"User '{data.username}' is blocked")
             raise HTTPException(403, "Account blocked")
 
+        if user.get("status") == "pending":
+            logger.warning(f"User '{data.username}' has not verified their account")
+            raise HTTPException(403, "Account not verified. Please check your email for the OTP.")
+
         access_token = create_access_token(data={"sub": user["username"]})
         
         logger.info(f"Login successful for user '{data.username}'")
@@ -312,6 +316,23 @@ async def analyze_risk(user_id: str, current_user: dict = Depends(get_current_us
 
 # ================= VERIFY USER =================
 
+@app.post("/verify-user")
+async def verify_user(data: VerifyRequest):
+    user = users_collection.find_one({"verify_token": data.token})
+
+    if not user:
+        raise HTTPException(400, "Invalid or expired OTP")
+
+    users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"status": "active"},
+         "$unset": {"verify_token": "", "blocked_at": ""}}
+    )
+
+    admin_notifications.delete_many({"username": user["username"]})
+    behavior_collection.delete_many({"user_id": str(user["_id"])})
+    risk_collection.delete_many({"user_id": str(user["_id"])})
+
     access_token = create_access_token(data={"sub": user["username"]})
 
     return {
@@ -319,7 +340,7 @@ async def analyze_risk(user_id: str, current_user: dict = Depends(get_current_us
         "token_type": "bearer",
         "user_id": str(user["_id"]),
         "role": user["role"],
-        "message": "User verified"
+        "message": "Account verified successfully"
     }
 
 # ================= ADMIN UNBLOCK =================
@@ -395,7 +416,8 @@ async def reset_password(data: ResetPasswordRequest):
     )
 
     logger.info(f"Password reset successful for {data.email}")
-# ================= ADMIN DASHBOARD =================
+    return {"message": "Password reset successful"}
+
 
 @app.get("/admin/notifications")
 async def get_notifications(current_user: dict = Depends(get_current_user)):

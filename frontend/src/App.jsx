@@ -63,14 +63,17 @@ export default function App() {
         return;
       }
 
-      setUserId(res.data.user_id);
-      setRole(res.data.role);
+      const { access_token, user_id, role } = res.data;
+      localStorage.setItem("token", access_token);
+      setUserId(user_id);
+      setRole(role);
       setRisk(null);
       setPage("dashboard");
     } catch (err) {
+      const msg = err.response?.data?.detail || "";
       if (err.response?.status === 403) {
-        setVerifyStep("email");
-        setStatus("🚨 Account Blocked. Verification Required.");
+        setVerifyStep("token");
+        setStatus(`🚨 ${msg || "Account requires verification."}`);
         setPage("verify");
       } else {
         setStatus("❌ Invalid Credentials");
@@ -88,8 +91,9 @@ export default function App() {
       setStatus("✅ OTP Sent to your Email. Please verify to activate account.");
       setVerifyStep("token");
       setPage("verify");
-    } catch {
-      setStatus("❌ User already exists");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Registration failed. Please try again.";
+      setStatus(`❌ ${msg}`);
     }
   };
 
@@ -131,67 +135,106 @@ export default function App() {
       return;
     }
     try {
-      await axios.post(`${API}/verify-user`, { token: verificationToken });
+      const res = await axios.post(`${API}/verify-user`, { token: verificationToken });
+      const { access_token, user_id, role } = res.data;
+      localStorage.setItem("token", access_token);
+      setUserId(user_id);
+      setRole(role);
+      
       setStatus("✅ Account Verified Successfully. Redirecting...");
       setTimeout(() => {
         setVerifyStep("email");
-        setPage("login");
+        setPage("dashboard");
       }, 1500);
-    } catch {
-      setStatus("❌ Invalid Verification Token");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Invalid or expired OTP.";
+      setStatus(`❌ ${msg}`);
     }
   };
 
+  const getAuthHeaders = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+  });
+
   const logNormal = async () => {
-    await axios.post(`${API}/log-behavior`, {
-      user_id: userId,
-      location: "Hyderabad",
-      device: "Chrome_Windows",
-      access_speed: 1.2,
-    });
-    setStatus("🟢 Normal Behavior Logged");
+    try {
+      await axios.post(`${API}/log-behavior`, {
+        user_id: userId,
+        location: "Hyderabad",
+        device: "Chrome_Windows",
+        access_speed: 1.2,
+      }, getAuthHeaders());
+      setStatus("🟢 Normal Behavior Logged");
+    } catch {
+      setStatus("❌ Session Expired. Please Login Again.");
+      setPage("login");
+    }
   };
 
   const logAbnormal = async () => {
-    await axios.post(`${API}/log-behavior`, {
-      user_id: userId,
-      location: "Unknown",
-      device: "Suspicious_Device",
-      access_speed: 15,
-    });
-    setStatus("🔴 Abnormal Behavior Logged");
+    try {
+      await axios.post(`${API}/log-behavior`, {
+        user_id: userId,
+        location: "Unknown",
+        device: "Suspicious_Device",
+        access_speed: 15,
+      }, getAuthHeaders());
+      setStatus("🔴 Abnormal Behavior Logged");
+    } catch {
+      setStatus("❌ Session Expired");
+      setPage("login");
+    }
   };
 
   const analyzeRisk = async () => {
-    const res = await axios.post(`${API}/analyze-risk/${userId}`);
-    setRisk(res.data);
+    try {
+      const res = await axios.post(`${API}/analyze-risk/${userId}`, {}, getAuthHeaders());
+      setRisk(res.data);
 
-    if (res.data.risk_level === "High") {
-      setVerifyStep("email");
-      setStatus("🚨 HIGH RISK DETECTED – ACCOUNT BLOCKED");
-      setPage("verify");
+      if (res.data.risk_level === "High") {
+        setVerifyStep("email");
+        setStatus("🚨 HIGH RISK DETECTED – ACCOUNT BLOCKED");
+        setPage("verify");
+      }
+    } catch {
+      setPage("login");
     }
   };
 
   const loadAlerts = async () => {
-    const res = await axios.get(`${API}/admin-notifications`);
-    setAlerts(res.data);
+    try {
+      const res = await axios.get(`${API}/admin/notifications`, getAuthHeaders());
+      setAlerts(res.data);
+    } catch {
+      setPage("login");
+    }
   };
 
   const loadReports = async () => {
-    const res = await axios.get(`${API}/risk-reports`);
-    setReports(res.data);
+    try {
+      const res = await axios.get(`${API}/admin/risk-reports`, getAuthHeaders());
+      setReports(res.data);
+    } catch {
+      setPage("login");
+    }
   };
 
   const unblockUser = async (blockedUsername) => {
     try {
-      await axios.post(`${API}/admin/unblock/${blockedUsername}`);
+      await axios.post(`${API}/admin/unblock/${blockedUsername}`, {}, getAuthHeaders());
       setStatus("✅ User Unblocked");
       loadAlerts();
       loadReports();
     } catch {
-      setStatus("❌ Failed to Unblock User");
+      setStatus("❌ Action Failed");
     }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUserId("");
+    setRole("");
+    setPage("login");
   };
 
   useEffect(() => {
@@ -333,7 +376,7 @@ export default function App() {
 
   return (
     <div className={`dashboard ${role === "admin" ? "admin-bg" : "user-bg"}`}>
-      <button className="logoutBtn" onClick={() => setPage("login")}>← Logout</button>
+      <button className="logoutBtn" onClick={logout}>← Logout</button>
       <h2>{role === "admin" ? "Admin Security Operations Center Dashboard" : "User Cyber Control Panel"}</h2>
 
       {role === "user" && (

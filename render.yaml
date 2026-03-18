@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: "npm install --prefix frontend && npm run build --prefix frontend && pip install -r backend/requirements.txt"
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    startCommand: "cd backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT"
     envVars:
       - key: MONGO_URL
         sync: false
@@ -16,9 +16,15 @@ services:
         sync: false
       - key: EMAILJS_PRIVATE_KEY
         sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: RENDER
+        value: "true"
       - key: NODE_VERSION
         value: 18.16.0
       - key: PYTHON_VERSION
-        value: 3.11.0 # Use a stable known version
+        value: 3.11.0
       - key: VITE_API_URL
         value: ""
