@@ -9,4 +9,5 @@ python-multipart
 requests
 python-dotenv
 # mailersend SDK removed to avoid versioning issues (using requests instead)
+python-jose[cryptography]
 gunicorn
