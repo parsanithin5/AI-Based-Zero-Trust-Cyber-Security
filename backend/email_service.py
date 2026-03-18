@@ -1,9 +1,11 @@
 import os
 import requests
+import logging
 from dotenv import load_dotenv
 
-# Load env variables
+# Load env variables if not already loaded
 load_dotenv()
+logger = logging.getLogger("email_service")
 
 SERVICE_ID = os.getenv("EMAILJS_SERVICE_ID")
 TEMPLATE_ID = os.getenv("EMAILJS_TEMPLATE_ID")
@@ -15,10 +17,10 @@ def send_email(to_email, subject, message, otp=None):
     Sends an email using EmailJS REST API.
     """
     if not all([SERVICE_ID, TEMPLATE_ID, PUBLIC_KEY, PRIVATE_KEY]):
-        print("❌ EMAILJS credentials missing in .env")
+        logger.error("EmailJS credentials missing in .env")
         return
 
-    print(f"📧 Attempting to send email to: {to_email} via EmailJS")
+    logger.info(f"Attempting to send email to: {to_email}")
 
     url = "https://api.emailjs.com/api/v1.0/email/send"
     
@@ -38,8 +40,8 @@ def send_email(to_email, subject, message, otp=None):
     try:
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            print(f"✅ Email Sent Successfully via EmailJS!")
+            logger.info("Email sent successfully via EmailJS.")
         else:
-            print(f"❌ EmailJS API Error: {response.status_code} - {response.text}")
+            logger.error(f"EmailJS API Error: {response.status_code} - {response.text}")
     except Exception as e:
-        print(f"❌ Request Error: {e}")
+        logger.error(f"Request Error: {e}")
